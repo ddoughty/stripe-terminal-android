@@ -61,7 +61,7 @@ dependencies {
     // Stripe Terminal library
     implementation("com.stripe:stripeterminal-taptopay:$stripeTerminalVersion")
     implementation("com.stripe:stripeterminal-core:$stripeTerminalVersion")
-
+    // implementation("com.stripe:stripeterminal:4.5.1")
     // Leak canary
     debugImplementation("com.squareup.leakcanary:leakcanary-android:2.14")
 }

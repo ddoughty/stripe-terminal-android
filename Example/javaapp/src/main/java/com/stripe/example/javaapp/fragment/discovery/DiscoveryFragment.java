@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -216,6 +217,7 @@ public class DiscoveryFragment extends Fragment implements DiscoveryListener, Mo
 
                 @Override
                 public void onFailure(@NotNull TerminalException e) {
+                    Log.d("Glorb", "Blorb");
                     viewModel.discoveryTask = null;
                     final MainActivity activity = activityRef.get();
                     if (activity != null) {
@@ -226,7 +228,8 @@ public class DiscoveryFragment extends Fragment implements DiscoveryListener, Mo
 
             DiscoveryMethod discoveryMethod = (DiscoveryMethod) getArguments().getSerializable(DISCOVERY_METHOD);
             if (checkPermission(discoveryMethod)) {
-                boolean isSimulated = getArguments().getBoolean(SIMULATED_KEY);
+                // boolean isSimulated = getArguments().getBoolean(SIMULATED_KEY);
+                boolean isSimulated = false;
                 final DiscoveryConfiguration config;
                 if (discoveryMethod == DiscoveryMethod.BLUETOOTH_SCAN) {
                     config = new DiscoveryConfiguration.BluetoothDiscoveryConfiguration(0, isSimulated);

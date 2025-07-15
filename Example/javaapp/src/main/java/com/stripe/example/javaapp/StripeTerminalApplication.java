@@ -4,6 +4,7 @@ import android.app.Application;
 import android.os.StrictMode;
 
 import com.stripe.stripeterminal.TerminalApplicationDelegate;
+import com.stripe.stripeterminal.taptopay.TapToPay;
 
 public class StripeTerminalApplication extends Application {
     @Override
@@ -25,6 +26,9 @@ public class StripeTerminalApplication extends Application {
                         .build());
 
         super.onCreate();
+
+        // Per stripe docs
+        if (TapToPay.isInTapToPayProcess()) return;
 
         TerminalApplicationDelegate.onCreate(this);
     }
