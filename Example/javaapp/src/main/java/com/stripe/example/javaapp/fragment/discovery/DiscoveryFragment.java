@@ -228,8 +228,8 @@ public class DiscoveryFragment extends Fragment implements DiscoveryListener, Mo
 
             DiscoveryMethod discoveryMethod = (DiscoveryMethod) getArguments().getSerializable(DISCOVERY_METHOD);
             if (checkPermission(discoveryMethod)) {
-                // boolean isSimulated = getArguments().getBoolean(SIMULATED_KEY);
-                boolean isSimulated = false;
+                boolean isSimulated = getArguments().getBoolean(SIMULATED_KEY);
+                // boolean isSimulated = false;
                 final DiscoveryConfiguration config;
                 if (discoveryMethod == DiscoveryMethod.BLUETOOTH_SCAN) {
                     config = new DiscoveryConfiguration.BluetoothDiscoveryConfiguration(0, isSimulated);

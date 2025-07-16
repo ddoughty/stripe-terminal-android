@@ -231,7 +231,20 @@ public class EventFragment extends Fragment implements MobileReaderListener {
         @Override
         public void onSuccess(@NotNull SetupIntent setupIntent) {
             addEvent("Collected PaymentMethod", "terminal.collectSetupIntentPaymentMethod");
+            Terminal.getInstance().confirmSetupIntent(setupIntent, confirmSetupIntentCallback);
             viewModel.collectTask = null;
+        }
+
+        @Override
+        public void onFailure(@NotNull TerminalException e) {
+            EventFragment.this.onFailure(e);
+        }
+    };
+
+    @NotNull private final SetupIntentCallback confirmSetupIntentCallback = new SetupIntentCallback() {
+        @Override
+        public void onSuccess(@NotNull SetupIntent setupIntent) {
+            addEvent("Confirmed setup", "terminal.confirmSetupIntent");
             completeFlow();
         }
 
