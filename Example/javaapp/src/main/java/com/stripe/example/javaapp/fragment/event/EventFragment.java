@@ -1,6 +1,8 @@
 package com.stripe.example.javaapp.fragment.event;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -53,18 +55,63 @@ import com.stripe.stripeterminal.external.models.TippingConfiguration;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.Locale;
+import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.Response;
+
+
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Scanner;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+class SimpleHttpPost {
+
+    public static String fetch(String endpoint, String jsonPayload) throws Exception {
+        URL url = new URL(endpoint);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+        conn.setDoOutput(true);
+
+        conn.setConnectTimeout(5000); // 5 seconds
+        conn.setReadTimeout(5000);    // 5 seconds
+
+        try (OutputStream os = conn.getOutputStream()) {
+            os.write(jsonPayload.getBytes("UTF-8"));
+        }
+
+        int status = conn.getResponseCode();
+        Scanner scanner = new Scanner(
+                (status >= 200 && status < 300) ? conn.getInputStream() : conn.getErrorStream()
+        ).useDelimiter("\\A");
+
+        String response = scanner.hasNext() ? scanner.next() : "";
+        conn.disconnect();
+        return response;
+    }
+}
+
 
 /**
  * The `EventFragment` displays events as they happen during a payment flow
  */
 public class EventFragment extends Fragment implements MobileReaderListener {
+
+    // A tiny single-thread pool just for network work
+    private final ExecutorService networkExecutor = Executors.newSingleThreadExecutor();
+    // Handler tied to the main (UI) thread
+    private final Handler uiHandler = new Handler(Looper.getMainLooper());
 
     @NotNull
     public static final String TAG = "com.stripe.example.fragment.event.EventFragment";
@@ -309,8 +356,43 @@ public class EventFragment extends Fragment implements MobileReaderListener {
                     final CreateConfiguration config = new CreateConfiguration(offlineBehaviorSelection.offlineBehavior);
                     Terminal.getInstance().createPaymentIntent(params, createPaymentIntentCallback, config);
                 } else if (arguments.getBoolean(SAVE_CARD)) {
-                    SetupIntentParameters params = new SetupIntentParameters.Builder().build();
-                    Terminal.getInstance().createSetupIntent(params, createSetupIntentCallback);
+                    // right here we first want to connect to our bff to start the state machine
+                    // and we want to add the validation_id to the metadata for the setupIntent
+
+                    // String endpoint = "https://awaited-wolf-renewing.ngrok-free.app/stripe_validate";
+                    String endpoint = "https://lounge-poc.fly.dev/stripe_validate";
+                    String payload = "{\"hello\":\"world\"}";
+                    networkExecutor.execute(() -> {
+                        try {
+                            // SimpleHttpPost.fetch(...) is the synchronous method we built earlier
+                            String response = SimpleHttpPost.fetch(endpoint, payload);
+
+                            // 3️⃣ hop back to UI thread for next steps
+                            uiHandler.post(() -> {
+                                // ---- CONTINUE WORKFLOW HERE ----
+
+                                JSONObject json = null;
+                                try {
+                                    json = new JSONObject(response);
+                                } catch (JSONException e) {
+                                    throw new RuntimeException(e);
+                                }
+                                String guid = null;
+                                try {
+                                    guid = json.getString("guid");
+                                } catch (JSONException e) {
+                                    throw new RuntimeException(e);
+                                }
+                                // here's the original Stripe-provided code
+                                SetupIntentParameters params = new SetupIntentParameters.Builder().setMetadata(Map.of("validation_id", guid)).build();
+                                Terminal.getInstance().createSetupIntent(params, createSetupIntentCallback);
+                            });
+
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    });
+
                 }
             }
         }
